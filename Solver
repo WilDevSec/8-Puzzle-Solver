@@ -1,0 +1,150 @@
+import numpy
+import random, time
+
+def generate_board():
+    numbers = [1,2,3,4,5,6,7,8,None]
+    while(True):
+        random.shuffle(numbers)
+        inversion_count = 0
+        for i in range(0,len(numbers)-2):
+            for j in range(i, len(numbers)-1):
+                if numbers[i] is not None and numbers[j] is not None and numbers[i] > numbers[j]:
+                    print(numbers[i], "is greater than", numbers[j])
+                    inversion_count += 1
+        if inversion_count % 2 == 0:
+            break
+
+    numbers1 = numbers[0], numbers[1], numbers[2]
+    numbers2 = numbers[3], numbers[4], numbers[5]
+    numbers3 = numbers[6], numbers[7], numbers[8]
+    numbers_out = numbers1, numbers2, numbers3
+    return numbers_out
+
+print(generate_board())
+
+# def display_board(numbers):
+#     board = f"{numbers[0][0]}   |   {numbers[0][1]}   |   {numbers[0][2]}\n" \
+#             f"-   -   -   -   -\n" \
+#             f"{numbers[1][0]}   |   {numbers[1][1]}   |   {numbers[1][2]}\n" \
+#             f"-   -   -   -   -\n" \
+#             f"{numbers[2][0]}   |   {numbers[2][1]}   |   {numbers[2][2]}"
+#     return board
+
+class Node:
+    def __init__(self, board, level, fval):
+        """ Initialize the node with the data, level of the node and the calculated fvalue """
+        self.board = board
+        self.level = level
+        self.fval = fval
+
+    def generate_child(self):
+        """ Generate child nodes from the given node by moving the blank space
+            either in the four directions {up,down,left,right} """
+        x, y = self.find(self.board)
+        """ val_list contains position values for moving the blank space in either of
+            the 4 directions [up,down,left,right] respectively. """
+        val_list = [[x, y - 1], [x, y + 1], [x - 1, y], [x + 1, y]]
+        children = []
+        for i in val_list:
+            child = self.shuffle(self.board, x, y, i[0], i[1])
+            if child is not None:
+                child_node = Node(child, self.level + 1, 0)
+                children.append(child_node)
+        return children
+
+    def shuffle(self, puz, x1, y1, x2, y2):
+        """ Move the blank space in the given direction and if the position value are out
+            of limits then return None """
+        if 0 <= x2 < len(self.board) and 0 <= y2 < len(self.board): #x2 >= 0 and x2 < len(self.board) and y2 >= 0 and y2 < len(self.board):
+            temp_puz = []
+            temp_puz = self.copy(puz)
+            temp = temp_puz[x2][y2]
+            temp_puz[x2][y2] = temp_puz[x1][y1]
+            temp_puz[x1][y1] = temp
+            return temp_puz
+        else:
+            return None
+
+    def copy(self, root):
+        """ Copy function to create a similar matrix of the given node"""
+        temp = []
+        for i in root:
+            t = []
+            for j in i:
+                t.append(j)
+            temp.append(t)
+        return temp
+
+    def find(self, puz):
+        """ Specifically used to find the position of the blank space """
+        for i in range(0, len(self.board)):
+            for j in range(0, len(self.board)):
+                if puz[i][j] is None:
+                    return i, j
+
+
+class Puzzle:
+    def __init__(self, size):
+        """ Initialize the puzzle size by the specified size,open and closed lists to empty """
+        self.n = size
+        self.open = []
+        self.closed = []
+
+    # def accept(self):
+    #     """ Accepts the puzzle from the user """
+    #     puz = []
+    #     for i in range(0, self.n):
+    #         temp = input().split(" ")
+    #         puz.append(temp)
+    #     return puz
+
+    def f(self, start, goal):
+        """ Heuristic Function to calculate hueristic value f(x) = h(x) + g(x) """
+        return self.heuristic_calculator(start.board, goal) + start.level
+
+    def heuristic_calculator(self, start, goal):
+        """ Calculates the difference between the given puzzles """
+        temp = 0
+        for i in range(0, self.n):
+            for j in range(0, self.n):
+                if start[i][j] != goal[i][j] and start[i][j] is not None:
+                    temp += 1
+        return temp
+
+    def process(self):
+        board = generate_board()
+        # board = [[1,2,3],[None,4,6],[7,5,8]]
+        # print("Board state at start is: \n", display_board(board))
+        start = Node(board,0,0)
+
+        goal = [[1,2,3],[4,5,6],[7,8,None]]
+        start.fval = self.f(start, goal)
+        """ Put the start node in the open list"""
+        self.open.append(start)
+        print("\n\n")
+        move_count = 0
+        while True:
+            cur = self.open[0]
+            print("")
+            print(move_count, "Moves made")
+            print("")
+            move_count += 1
+            for i in cur.board:
+                for j in i:
+                    print(j, end=" ")
+                print("")
+            """ If the difference between current and goal node is 0 we have reached the goal node"""
+            if self.heuristic_calculator(cur.board, goal) == 0:
+                break
+            for i in cur.generate_child():
+                i.fval = self.f(i, goal)
+                self.open.append(i)
+            self.closed.append(cur)
+            del self.open[0]
+
+            """ sort the opne list based on f value """
+            self.open.sort(key=lambda x: x.fval, reverse=False)
+
+
+puzz = Puzzle(3)
+# puzz.process()
